@@ -168,7 +168,7 @@
       <span class="post-meta-item-text">Posted on</span>
       
 
-      <time title="Created: 2025-03-07 11:08:57 / Modified: 14:23:39" itemprop="dateCreated datePublished" datetime="2025-03-07T11:08:57+08:00">2025-03-07</time>
+      <time title="Created: 2025-03-07 11:08:57 / Modified: 14:34:35" itemprop="dateCreated datePublished" datetime="2025-03-07T11:08:57+08:00">2025-03-07</time>
     </span>
 
   
@@ -200,16 +200,16 @@
 <h1 id="Stage-1-Redis-Based-Bloom-Filter-Index"><a href="#Stage-1-Redis-Based-Bloom-Filter-Index" class="headerlink" title="Stage 1: Redis-Based Bloom Filter Index"></a>Stage 1: Redis-Based Bloom Filter Index</h1><p>When thinking about how to accelerate queries for high-cardinality fields like <code>tid</code>, the most straightforward approach is to reduce unnecessary data retrieval. However, we couldn’t use inverted indexes, as that would revert to the old system’s approach, negating Loki’s advantages.</p>
 <p>To achieve something lighter than an inverted index, I naturally thought of Bloom filters. In the second half of 2022, I enhanced Loki’s ingestion and querying pipelines to use Redis Bloom filters to accelerate queries. The core idea was to create a Bloom filter for each 10-minute time slice and write the field values that needed indexing during that period. During queries, the Bloom filter would filter out time slices that didn’t contain the query keyword, narrowing the search scope.</p>
 <p>A Bloom filter is a probabilistic data structure with a certain false-positive rate. When it returns “exists,” the value might not actually exist, but when it returns “does not exist,” the value definitely doesn’t exist. This allows us to filter out data that doesn’t contain the query keyword.</p>
-<h2 id="Write-Path"><a href="#Write-Path" class="headerlink" title="Write Path"></a>Write Path</h2><p><img src="/Users/honganan/Documents/gitpub/honganan.github.io/source/images/1.1write.webp" alt="write"></p>
+<h2 id="Write-Path"><a href="#Write-Path" class="headerlink" title="Write Path"></a>Write Path</h2><p><img src="/../images/image-20250307142527904.png" alt="image-20250307142527904"></p>
 <p>The ingestion pipeline modifications included:</p>
 <ol>
 <li>Extending Loki’s ingestion protocol to extract relevant fields from log content and write them as attachments to Loki.</li>
 <li>Modifying Loki’s ingestion pipeline to batch-write attachment fields into Bloom filters.</li>
 </ol>
 <p>We created a Bloom filter for each application every 10 minutes, with the filter name formatted as <code>$&#123;tenantId&#125;_$&#123;app&#125;_202503041910</code>.</p>
-<h2 id="Query-Path"><a href="#Query-Path" class="headerlink" title="Query Path"></a>Query Path</h2><p><img src="/Users/honganan/Documents/gitpub/honganan.github.io/source/images/1.1read.webp" alt="read"></p>
+<h2 id="Query-Path"><a href="#Query-Path" class="headerlink" title="Query Path"></a>Query Path</h2><p><img src="/../images/image-20250307142547982.png" alt="image-20250307142547982"></p>
 <p>During queries, we first checked the Bloom filter based on the field and time to filter out time slices that didn’t contain the corresponding value, thereby reducing the search scope. For example, if the query’s end time was rounded to “202503041910,” we used the query keyword to filter the Bloom filter named <code>$&#123;tenant&#125;_$&#123;app&#125;_202503041910</code>. If the keyword didn’t exist in the filter, the subquery didn’t need to be executed. If it returned “exists,” we pulled the log file data for searching.</p>
-<h2 id="Fault-Tolerance"><a href="#Fault-Tolerance" class="headerlink" title="Fault Tolerance"></a>Fault Tolerance</h2><p>![image-20250307140756845](&#x2F;Users&#x2F;honganan&#x2F;Library&#x2F;Application Support&#x2F;typora-user-images&#x2F;image-20250307140756845.png)</p>
+<h2 id="Fault-Tolerance"><a href="#Fault-Tolerance" class="headerlink" title="Fault Tolerance"></a>Fault Tolerance</h2><p><img src="/../images/image-20250307140756845.png" alt="image-20250307140756845"></p>
 <ol>
 <li>If an exception occurred during attachment ingestion, we marked the Bloom filter shard as dirty in Redis, e.g., <code>Dirty_myapp_2769901</code>.</li>
 <li>During queries, if this mark was found, we downgraded to a full-text search.</li>
@@ -225,11 +225,11 @@
 <li><strong>Querying:</strong> The hash function locates the key’s specific shard, which is then loaded from SSD.</li>
 </ul>
 <p>This sharding mechanism effectively reduces the data volume read from SSD during queries. By batching writes and briefly caching reads, the increased latency is imperceptible to users.</p>
-<h2 id="Ingestion-Process"><a href="#Ingestion-Process" class="headerlink" title="Ingestion Process"></a>Ingestion Process</h2><p>![image-20250307141225525](&#x2F;Users&#x2F;honganan&#x2F;Library&#x2F;Application Support&#x2F;typora-user-images&#x2F;image-20250307141225525.png)</p>
+<h2 id="Ingestion-Process"><a href="#Ingestion-Process" class="headerlink" title="Ingestion Process"></a>Ingestion Process</h2><p><img src="/../images/image-20250307141225525.png" alt="image-20250307141225525"></p>
 <p>When a log chunk is flushed to storage, all indexed field values in the chunk are batch-written to their corresponding Bloom filters. During write, a hash function maps the field value to a specific shard, which is then written to.</p>
-<h2 id="Query-Process"><a href="#Query-Process" class="headerlink" title="Query Process"></a>Query Process</h2><p>![image-20250307141730107](&#x2F;Users&#x2F;honganan&#x2F;Library&#x2F;Application Support&#x2F;typora-user-images&#x2F;image-20250307141730107.png)</p>
+<h2 id="Query-Process"><a href="#Query-Process" class="headerlink" title="Query Process"></a>Query Process</h2><p><img src="/../images/image-20250307141730107.png" alt="image-20250307141730107"></p>
 <p>During queries, the key’s hash value locates the shard, which is loaded from SSD into memory. The key is then concatenated with each <code>chunkId</code> and filtered through the shard to determine if the chunk might contain the key. If not, the chunk file doesn’t need to be queried.</p>
-<h2 id="Storage-Structure"><a href="#Storage-Structure" class="headerlink" title="Storage Structure"></a>Storage Structure</h2><p><img src="/Users/honganan/Documents/gitpub/honganan.github.io/source/images/2.2storage.webp" alt="2.2storage"></p>
+<h2 id="Storage-Structure"><a href="#Storage-Structure" class="headerlink" title="Storage Structure"></a>Storage Structure</h2><p><img src="/../images/image-20250307142610301.png" alt="image-20250307142610301"></p>
 <ul>
 <li><strong>Structure:</strong> Each Bloom filter consists of a meta and multiple “sub-filters.”</li>
 <li><strong>Storage:</strong> The meta is cached in memory, recording shard count and other metadata, while sub-filters are stored in SSD files as Bloom filter bit arrays.</li>
@@ -247,7 +247,7 @@
 
 
 <h2 id="Data-Ingestion-and-Flushing"><a href="#Data-Ingestion-and-Flushing" class="headerlink" title="Data Ingestion and Flushing"></a>Data Ingestion and Flushing</h2><p>During ingestion, Bloom filters are first built in memory and then flushed to SSD after a period. If new data needs to be written, it is buffered in memory and periodically updated. The timeline is as follows:</p>
-<p>![image-20250307141944185](&#x2F;Users&#x2F;honganan&#x2F;Library&#x2F;Application Support&#x2F;typora-user-images&#x2F;image-20250307141944185.png)</p>
+<p><img src="/../images/image-20250307141944185.png" alt="image-20250307141944185"></p>
 <ul>
 <li><strong>t0-t1:</strong> BBF is created for each 10-minute window, with all data in this period written to the same BBF index (which contains many shards).</li>
 <li><strong>t2:</strong> After the 10-minute window, the BBF is flushed to SSD after a delay (<code>flush_delay</code>).</li>
@@ -262,11 +262,8 @@
 <h2 id="Results-1"><a href="#Results-1" class="headerlink" title="Results"></a>Results</h2><p>After deploying BBF 1.0, we supported 50 times the index capacity at the same cost, with query latency indistinguishable from Redis.</p>
 <h1 id="Stage-3-S3-Based-Bloom-Filter-Index"><a href="#Stage-3-S3-Based-Bloom-Filter-Index" class="headerlink" title="Stage 3: S3-Based Bloom Filter Index"></a>Stage 3: S3-Based Bloom Filter Index</h1><p>While BBF 1.0 supported more fields, scaling to full-text Bloom filters posed challenges:</p>
 <ul>
-<li><strong>SSD Bandwidth Limitation:</strong> In full-text scenarios, the Bloom filter size is about 3% of the original log volume. For 20TB of logs, this is 600GB. With 3000 shards and 10 keys per query, the data volume to load is:</li>
-</ul>
-<p>600GB &#x2F; 3000 * 10 ≈ 18GB</p>
-<p>With an SSD bandwidth of 250MB&#x2F;s, the read time is 72 seconds.</p>
-<ul>
+<li><p><strong>SSD Bandwidth Limitation:</strong> In full-text scenarios, the Bloom filter size is about 3% of the original log volume. For 20TB of logs, this is 600GB. With 3000 shards and 10 keys per query, the data volume to load is: 600GB &#x2F; 3000 * 10 ≈ 18GB. With an SSD bandwidth of 250MB&#x2F;s, the read time is 72 seconds.</p>
+</li>
 <li><p><strong>Ingester Memory Issue:</strong> In BBF 1.0, extracted fields were cached in Ingester memory until the log chunk was flushed to storage. In full-text scenarios, caching all keys in memory is too expensive.</p>
 </li>
 <li><p><strong>Cross-Zone Traffic:</strong> Since our ingestion pipeline is multi-zone isolated, writing all keys from a log chunk to different BBF nodes would incur significant cross-zone traffic, which is costly with some cloud providers.</p>
@@ -278,7 +275,7 @@
 <li><strong>Index Shard Management Coordination:</strong> How nodes manage shards, particularly deciding which node is responsible for which shard’s write buffer.</li>
 </ul>
 <h2 id="Community-Solution"><a href="#Community-Solution" class="headerlink" title="Community Solution"></a>Community Solution</h2><p>Coincidentally, the Loki team was also developing a Bloom filter-based index.</p>
-<p><img src="/Users/honganan/Documents/gitpub/honganan.github.io/source/images/3.1community.webp" alt="3.1community"></p>
+<p><img src="/../images/image-20250307142815234.png" alt="image-20250307142815234"></p>
 <p> Their approach involved adding Bloom compactor nodes, where multiple compactor nodes divide tasks by stream segments, with each node responsible for indexing logs in its segment. The index is built into blocks stored on SSD.</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">A stream is a unique combination of multiple labels. Loki organizes log ingestion by stream, e.g., with 3 labels and 100 value combinations, there would be 100 streams.</span><br></pre></td></tr></table></figure>
 
@@ -291,7 +288,7 @@
 <li><strong>Poor Query Performance:</strong> Without optimizing data storage structure, each query may load all Bloom data, limiting indexing to partial fields.</li>
 </ul>
 <h2 id="Our-Solution"><a href="#Our-Solution" class="headerlink" title="Our Solution"></a>Our Solution</h2><p>In the first half of 2024, I tested the community’s solution and modified its storage structure to optimize query speed by hash-sharding the blocks, similar to our Stage 2 approach. After six months of testing, query speed was acceptable, but index ingestion was slow, with delays exceeding an hour under reasonable resource constraints. We abandoned the community’s approach and returned to our design.</p>
-<h3 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h3><p><img src="/Users/honganan/Documents/gitpub/honganan.github.io/source/images/3.1ourarch.webp" alt="3.1ourarch"></p>
+<h3 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h3><p><img src="/../images/image-20250307142649539.png" alt="image-20250307142649539"></p>
 <ul>
 <li><strong>Ingester:</strong> When flushing log chunks to storage, the Ingester also sends the <code>chunkId</code> to BBF Computer nodes. This incurs some cross-zone traffic, but since only file IDs are sent, the traffic is minimal.</li>
 <li><strong>BBF Computer Nodes:</strong> These nodes handle tokenization tasks. Upon receiving a <code>chunkId</code>, they pull the log file from S3, tokenize it, and send the tokens to the corresponding BBF Index nodes based on hash mapping.</li>
@@ -301,7 +298,7 @@
 <p><strong>Sticky Ring Solution</strong></p>
 <p>After creating all BBF shards, the node list for the current time bucket is recorded in Consul. When scaling up, new nodes only handle BBFs created for the next time bucket. When scaling down, nodes are first decommissioned, stopping new shard creation but completing writes for current shards until the maximum time window is exceeded.</p>
 <h3 id="Memory-Control-and-Stability"><a href="#Memory-Control-and-Stability" class="headerlink" title="Memory Control and Stability"></a>Memory Control and Stability</h3><p>Our index is split by time buckets (e.g., 10 minutes per BBF). Ideally, active indexes should be concentrated in the last one or two buckets, but in practice, ingestion backlogs or Ingester flush disorder like below, which can cause memory bucket counts to grow significantly, requiring resource scaling to catch up.</p>
-<p><img src="/Users/honganan/Documents/gitpub/honganan.github.io/source/images/3.1bucketorder.webp" alt="3.1bucketorder"></p>
+<p><img src="/../images/image-20250307142722947.png" alt="image-20250307142722947"></p>
 <p><strong>Distributed Window Mechanism:</strong> To control BBF bucket length, we implemented a window mechanism. However, during testing, we found that different nodes had different window elements, severely reducing ingestion speed. We upgraded to a Consul-based distributed window, where Consul stores keys like:</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"># With one element</span><br><span class="line">./window/202503030240/prod-bbf-index-c-1</span><br><span class="line">./window/202503030240/prod-bbf-index-c-2</span><br><span class="line">./window/202503030240/prod-bbf-index-c-3</span><br><span class="line">./window/202503030240/prod-bbf-index-c-4</span><br><span class="line"></span><br><span class="line"># With multiple elements in the candidate queue</span><br><span class="line">./candidate/202503030250</span><br><span class="line">./candidate/202503030310</span><br></pre></td></tr></table></figure>
 
@@ -311,8 +308,8 @@
 <li><p><strong>When shrinking the window</strong>: a node only deletes its bucket key. The bucket is deleted only when all nodes have removed their keys, as shown below:</p>
 </li>
 </ul>
-<p>![image-20250307142204019](&#x2F;Users&#x2F;honganan&#x2F;Library&#x2F;Application Support&#x2F;typora-user-images&#x2F;image-20250307142204019.png)</p>
-<p>![image-20250307142220547](&#x2F;Users&#x2F;honganan&#x2F;Library&#x2F;Application Support&#x2F;typora-user-images&#x2F;image-20250307142220547.png)</p>
+<p><img src="/../images/image-20250307142204019.png" alt="image-20250307142204019"></p>
+<p><img src="/../images/image-20250307142220547.png" alt="image-20250307142220547"></p>
 <p>After resolving bucket length and multi-node window inconsistency issues, we found that during ingestion backlogs, older shards could starve for window space. We added a candidate queue, sorting it on each change and moving the smallest bucket element into the window when space is available, resolving starvation.</p>
 <p><strong>Rectification:</strong> Despite the window and candidate mechanisms, severe bucket disorder could cause delays due to minimum buffer times. To improve ingestion speed during backlogs, we rectified <code>chunkId</code> ingestion by batch-reading <code>chunkIds</code>, grouping them by bucket, sorting, and ingesting in bucket order, significantly improving ingestion speed.</p>
 <h2 id="Summary"><a href="#Summary" class="headerlink" title="Summary"></a>Summary</h2><p>This solution:</p>
@@ -340,7 +337,7 @@
 <hr>
 <p>[1] Loki Cloud maintains a 50TB Memcached cluster to meet cloud customers’ query performance requirements: <a target="_blank" rel="noopener" href="https://grafana.com/blog/2023/08/23/how-we-scaled-grafana-cloud-logs-memcached-cluster-to-50tb-and-improved-reliability/">https://grafana.com/blog/2023/08/23/how-we-scaled-grafana-cloud-logs-memcached-cluster-to-50tb-and-improved-reliability/</a><br>[2] Buffered Bloom Filters on Solid State Storage, <a target="_blank" rel="noopener" href="https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=da6a07944d97723d6c154d76609b5c20a3636f9a">https://citeseerx.ist.psu.edu/document?repid=rep1&amp;type=pdf&amp;doi=da6a07944d97723d6c154d76609b5c20a3636f9a</a><br>[3] Bloom filter calculator: <a target="_blank" rel="noopener" href="https://hur.st/bloomfilter/">https://hur.st/bloomfilter/</a></p>
 <p><strong>Github</strong>: <a target="_blank" rel="noopener" href="https://github.com/honganan">https://github.com/honganan</a></p>
-<p><strong>Contact:</strong> <a href="mailto:&#x68;&#111;&#110;&#x67;&#97;&#x6e;&#x61;&#110;&#64;&#113;&#113;&#x2e;&#99;&#111;&#x6d;">honganan@qq.com</a></p>
+<p><strong>Contact:</strong> <a href="mailto:&#x68;&#111;&#x6e;&#x67;&#x61;&#x6e;&#97;&#110;&#x40;&#x71;&#113;&#x2e;&#x63;&#111;&#109;">honganan@qq.com</a></p>
 <p><strong>WeChat:</strong> honganan_</p>
 
       
