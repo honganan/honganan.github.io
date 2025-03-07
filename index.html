@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha256-dABdfBfUoC8vJUBOwGVdm8L9qlMWaHTIfXt+7GnZCIo=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"honganan.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":false,"version":"8.22.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"honganan.github.io","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.22.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
 
     <meta property="og:type" content="website">
 <meta property="og:title" content="honganan">
@@ -57,6 +57,9 @@
       <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
   <div class="site-nav-toggle">
     <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
     </div>
   </div>
 
@@ -77,6 +80,10 @@
 
 
 
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+  </ul>
+</nav>
 
 
 
@@ -121,6 +128,14 @@
       </div>
   </nav>
 </div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/honganan" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;honganan" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/honganan@qq.com" title="E-Mail → honganan@qq.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
 
         </div>
       </div>
@@ -172,10 +187,25 @@
       <span class="post-meta-item-text">Posted on</span>
       
 
-      <time title="Created: 2025-03-07 11:08:57 / Modified: 15:20:08" itemprop="dateCreated datePublished" datetime="2025-03-07T11:08:57+08:00">2025-03-07</time>
+      <time title="Created: 2025-03-07 11:08:57 / Modified: 16:22:41" itemprop="dateCreated datePublished" datetime="2025-03-07T11:08:57+08:00">2025-03-07</time>
     </span>
 
   
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="Word count in article">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">Word count in article: </span>
+      <span>2.9k</span>
+    </span>
+    <span class="post-meta-item" title="Reading time">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">Reading time &asymp;</span>
+      <span>11 mins.</span>
+    </span>
 </div>
 
         </div>
@@ -187,168 +217,14 @@
     <div class="post-body" itemprop="articleBody">
           <p>This post presents my approach to addressing the challenges of large-scale log queries in Loki, detailing the development, iteration, and implementation of the BBF index.</p>
 <h1 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h1><p>Loki is Grafana’s open-source log aggregation system, designed with an “index-free” philosophy. This means it only indexes metadata (labels) of logs lightly, while storing log content directly without any indexing. This design offers several advantages:</p>
-<ul>
-<li><strong>Lightweight Log Ingestion:</strong> Since no index is built for log content, log ingestion is very fast, with low resource usage. Typically, it can achieve speeds of up to 25MB&#x2F;s per core.</li>
-<li><strong>Smaller Storage Footprint:</strong> There’s no need to store massive indexes, unlike systems with inverted indexes where the index size can be as large as the log data itself.</li>
-<li><strong>Cost Shifting from Ingestion to Querying:</strong> Given that logs are written more frequently than they are read, this design allows for rapid log ingestion with minimal resources. Then, by deploying a large querying cluster, it leverages the high throughput of object storage (up to tens of GB&#x2F;s) for brute-force downloading and searching.</li>
-</ul>
-<h1 id="The-Problem"><a href="#The-Problem" class="headerlink" title="The Problem"></a>The Problem</h1><p>Loki organizes data by labels, storing logs with the same label values in the same set of files. This means that when querying with specific application labels, data from other applications is excluded. This approach is cost-effective when the total log volume is large but each application’s log volume is relatively balanced, potentially reducing costs to 20% of what Elasticsearch (ES) would require.</p>
-<p>However, when an application’s log volume reaches the terabyte scale, Loki struggles with queries, especially for “needle-in-a-haystack” searches, such as finding a specific <code>tid</code> or <code>requestId</code> in tens of terabytes of logs. In contrast, traditional systems with inverted indexes typically handle such queries in less than a second.</p>
-<h1 id="The-Journey-to-a-Solution"><a href="#The-Journey-to-a-Solution" class="headerlink" title="The Journey to a Solution"></a>The Journey to a Solution</h1><p>The Loki community has raised similar concerns, and the Loki team has been contemplating solutions. However, after deploying Loki in 2022, we urgently needed to address this issue. Our exploration can be summarized in three stages:</p>
-<p><img src="/../images/journey.png" alt="journey"></p>
-<ol>
-<li><strong>Stage 1:</strong> Extracting high-cardinality fields like <code>tid</code> and writing them to a Redis Bloom filter.</li>
-<li><strong>Stage 2:</strong> Developing a Bloom filter index based on SSD storage (BBF 1.0), indexing more commonly queried fields.</li>
-<li><strong>Stage 3:</strong> Designing and developing a large-scale full-text Bloom filter index based on S3 (BBF 2.0).</li>
-</ol>
-<h1 id="Stage-1-Redis-Based-Bloom-Filter-Index"><a href="#Stage-1-Redis-Based-Bloom-Filter-Index" class="headerlink" title="Stage 1: Redis-Based Bloom Filter Index"></a>Stage 1: Redis-Based Bloom Filter Index</h1><p>When thinking about how to accelerate queries for high-cardinality fields like <code>tid</code>, the most straightforward approach is to reduce unnecessary data retrieval. However, we couldn’t use inverted indexes, as that would revert to the old system’s approach, negating Loki’s advantages.</p>
-<p>To achieve something lighter than an inverted index, I naturally thought of Bloom filters. In the second half of 2022, I enhanced Loki’s ingestion and querying paths to use Redis Bloom filters to accelerate queries. The core idea was to create a Bloom filter for each 10-minute time slice and write the field values that needed indexing during that period. During queries, the Bloom filter would filter out time slices that didn’t contain the query keyword, narrowing the search scope.</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">A Bloom filter is a probabilistic data structure with a certain false-positive rate. When it returns &quot;exists,&quot; the value might not actually exist, but when it returns &quot;does not exist,&quot; the value definitely doesn&#x27;t exist. This allows us to filter out data that doesn&#x27;t contain the query keyword.</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="Write-Path"><a href="#Write-Path" class="headerlink" title="Write Path"></a>Write Path</h2><p><img src="/../images/image-20250307142527904.png" alt="image-20250307142527904"></p>
-<p>The ingestion path modifications included:</p>
-<ol>
-<li>Extending Loki’s ingestion protocol to extract relevant fields from log content and write them as attachments to Loki.</li>
-<li>Modifying Loki’s ingestion pipeline to batch-write attachment fields into Bloom filters.</li>
-</ol>
-<p>We created a Bloom filter for each application every 10 minutes, with the filter name formatted as <code>$&#123;tenantId&#125;_$&#123;app&#125;_202503041910</code>.</p>
-<h2 id="Query-Path"><a href="#Query-Path" class="headerlink" title="Query Path"></a>Query Path</h2><p><img src="/../images/image-20250307142547982.png" alt="image-20250307142547982"></p>
-<p>During queries, we first checked the Bloom filter based on the field and time to filter out time slices that didn’t contain the corresponding value, thereby reducing the search scope. For example, if the query’s end time was rounded to “202503041910,” we used the query keyword to filter the Bloom filter named <code>$&#123;tenant&#125;_$&#123;app&#125;_202503041910</code>. If the keyword didn’t exist in the filter, the subquery didn’t need to be executed. If it returned “exists,” we pulled the log file data for searching.</p>
-<h2 id="Fault-Tolerance"><a href="#Fault-Tolerance" class="headerlink" title="Fault Tolerance"></a>Fault Tolerance</h2><p><img src="/../images/image-20250307140756845.png" alt="image-20250307140756845"></p>
-<ol>
-<li>If an exception occurred during attachment ingestion, we marked the Bloom filter shard as dirty in Redis, e.g., <code>Dirty_myapp_2769901</code>.</li>
-<li>During queries, if this mark was found, we downgraded to a full-text search.</li>
-</ol>
-<p>After this version was deployed, we iterated further by optimizing the time-slice granularity of the Bloom filter to a file ID granularity. During ingestion, we still created Bloom filters for time slices, but when writing field values, we appended the log file ID (called <code>chunkId</code> in Loki) to each value. The final key written was: </p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">key + &quot;_&quot; + chunkId</span><br></pre></td></tr></table></figure>
-
-<p>During queries, we also appended <code>chunkId</code> to filter, reducing the filtered data volume from time slices to just a few chunk files.</p>
-<h2 id="Results"><a href="#Results" class="headerlink" title="Results"></a>Results</h2><p>After the first stage of optimization, querying for a <code>tid</code> in 20TB of logs was reduced from several minutes to under 3 seconds, with the search data volume reduced to a few hundred MB.</p>
-<h1 id="Stage-2-SSD-Based-Bloom-Filter-Index"><a href="#Stage-2-SSD-Based-Bloom-Filter-Index" class="headerlink" title="Stage 2: SSD-Based Bloom Filter Index"></a>Stage 2: SSD-Based Bloom Filter Index</h1><p>The Redis Bloom filter index achieved query performance close to full-text indexing, satisfying common query scenarios. However, Redis’s high cost made it impractical to index more fields due to resource constraints.</p>
-<p>I then considered whether Bloom filters could be stored on disk. Inspired by a paper[1], I designed an SSD-based Bloom filter index, called BBF 1.0, tailored to our scenario.</p>
-<h2 id="Core-Principles"><a href="#Core-Principles" class="headerlink" title="Core Principles"></a>Core Principles</h2><p>SSDs are one to two orders of magnitude slower than memory in I&#x2F;O speed. However, since Bloom filter writes and queries have explicit keys without prefix or suffix reads, we could design the Bloom filter to be stored in multiple shards:</p>
-<ul>
-<li><strong>Ingestion:</strong> A hash function maps the key to a specific shard, which is buffered in memory and periodically flushed to SSD.</li>
-<li><strong>Querying:</strong> The hash function locates the key’s specific shard, which is then loaded from SSD.</li>
-</ul>
-<p>This sharding mechanism effectively reduces the data volume read from SSD during queries. By batching writes and briefly caching reads, the increased latency is imperceptible to users.</p>
-<h2 id="Write-Path-1"><a href="#Write-Path-1" class="headerlink" title="Write Path"></a>Write Path</h2><p><img src="/../images/image-20250307141225525.png" alt="image-20250307141225525"></p>
-<p>When a log chunk is flushed to storage, all indexed field values in the chunk are batch-written to their corresponding Bloom filters. During write, a hash function maps the field value to a specific shard, which is then written to.</p>
-<h2 id="Query-Path-1"><a href="#Query-Path-1" class="headerlink" title="Query Path"></a>Query Path</h2><p><img src="/../images/image-20250307141730107.png" alt="image-20250307141730107"></p>
-<p>During queries, the key’s hash value locates the shard, which is loaded from SSD into memory. The key is then concatenated with each <code>chunkId</code> and filtered through the shard to determine if the chunk might contain the key. If not, the chunk file doesn’t need to be queried.</p>
-<h2 id="Storage-Structure"><a href="#Storage-Structure" class="headerlink" title="Storage Structure"></a>Storage Structure</h2><p><img src="/../images/image-20250307142610301.png" alt="image-20250307142610301"></p>
-<ul>
-<li><strong>Structure:</strong> Each Bloom filter consists of a meta and multiple “sub-filters.”</li>
-<li><strong>Storage:</strong> The meta is cached in memory, recording shard count and other metadata, while sub-filters are stored in SSD files as Bloom filter bit arrays.</li>
-<li><strong>Ingestion:</strong> The first hash function maps the field value to a specific sub-filter.</li>
-<li><strong>Querying:</strong> The field value’s sub-filter is located and loaded from SSD for filtering.</li>
-</ul>
-<h2 id="Filter-Expansion"><a href="#Filter-Expansion" class="headerlink" title="Filter Expansion"></a>Filter Expansion</h2><p>If too many keys are written to a Bloom filter, its false-positive rate increases. Therefore, when the number of written values exceeds a preset threshold, the filter expands by creating new sub-filters with suffixes. For example, if the filter name is <code>202308090110_fake_tid_myapp</code>, and the key’s hash maps to shard 1, a new filter of the same size is created when the key count exceeds the capacity. The key’s sub-filter file list would then be:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">202308090110_fake_tid_myapp_s1</span><br><span class="line">202308090110_fake_tid_myapp_s1_1</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="Directory-Structure"><a href="#Directory-Structure" class="headerlink" title="Directory Structure"></a>Directory Structure</h2><p>By default, the filter name is used as the storage file name, with “default” as the directory name. If a prefix is provided, it is used as the directory name. The directory tree looks like this:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">./202308111210</span><br><span class="line">202308111210_fake_tid_myapp_meta.json</span><br><span class="line">202308111210_fake_tid_myapp_s0</span><br><span class="line">202308111210_fake_tid_myapp_s0_1</span><br><span class="line">202308111210_fake_tid_myapp_s1</span><br><span class="line">202308111210_fake_tid_myapp_s1_1</span><br><span class="line">...</span><br><span class="line">202308111210_fake_tid_myapp_s3000</span><br><span class="line">202308111210_fake_tid_myapp_s3000_1</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="Data-Ingestion-and-Flushing"><a href="#Data-Ingestion-and-Flushing" class="headerlink" title="Data Ingestion and Flushing"></a>Data Ingestion and Flushing</h2><p>During ingestion, Bloom filters are first built in memory and then flushed to SSD after a period. If new data needs to be written, it is buffered in memory and periodically updated. The timeline is as follows:</p>
-<p><img src="/../images/image-20250307141944185.png" alt="image-20250307141944185"></p>
-<ul>
-<li><strong>t0-t1:</strong> BBF is created for each 10-minute window, with all data in this period written to the same BBF index (which contains many shards).</li>
-<li><strong>t2:</strong> After the 10-minute window, the BBF is flushed to SSD after a delay (<code>flush_delay</code>).</li>
-<li><strong>t3:</strong> If new data is written after the BBF is flushed, it is buffered in memory for a period (<code>append_period</code>) before being batch-appended to the BBF to avoid repeated loading and flushing.</li>
-<li><strong>max_chunk_age:</strong> This is the maximum time a log chunk is cached in Loki’s Ingester. Chunks older than this are immediately flushed, so the BBF index may be appended multiple times within the <code>max_chunk_age</code> span.</li>
-</ul>
-<h2 id="Performance-Analysis"><a href="#Performance-Analysis" class="headerlink" title="Performance Analysis"></a>Performance Analysis</h2><p>For a data center querying <code>tid</code>, with about 4.4 billion enumerations per day and a false-positive rate of 0.001, the Bloom filter size is approximately 7.5GB[3]. Assuming 100 shards and 10 queries per SSD I&#x2F;O, the SSD file size to read is:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">7.5GB / 100 / 10 = 7.5MB</span><br></pre></td></tr></table></figure>
-
-<p>With an SSD read speed of 250MB&#x2F;s, a query takes about 30ms. Increasing the shard count can further reduce the data volume loaded per query.</p>
-<p>Cluster management and fault tolerance are not detailed here, as they follow similar practices.</p>
-<h2 id="Results-1"><a href="#Results-1" class="headerlink" title="Results"></a>Results</h2><p>After deploying BBF 1.0, we supported 50 times the index capacity at the same cost, with query latency indistinguishable from Redis.</p>
-<h1 id="Stage-3-S3-Based-Bloom-Filter-Index"><a href="#Stage-3-S3-Based-Bloom-Filter-Index" class="headerlink" title="Stage 3: S3-Based Bloom Filter Index"></a>Stage 3: S3-Based Bloom Filter Index</h1><p>While BBF 1.0 supported more fields, scaling to full-text Bloom filters posed challenges:</p>
-<ul>
-<li><p><strong>SSD Bandwidth Limitation:</strong> In full-text scenarios, the Bloom filter size is about 3% of the original log volume. For 20TB of logs, this is 600GB. With 3000 shards and 10 keys per query, the data volume to load is: 600GB &#x2F; 3000 * 10 ≈ 18GB. With an SSD bandwidth of 250MB&#x2F;s, the read time is 72 seconds.</p>
-</li>
-<li><p><strong>Ingester Memory Issue:</strong> In BBF 1.0, extracted fields were cached in Ingester memory until the log chunk was flushed to storage. In full-text scenarios, caching all keys in memory is too expensive.</p>
-</li>
-<li><p><strong>Cross-Zone Traffic:</strong> Since our ingestion pipeline is multi-zone isolated, writing all keys from a log chunk to different BBF nodes would incur significant cross-zone traffic, which is costly with some cloud providers.</p>
-</li>
-</ul>
-<p>Additionally, to meet high performance and scalability requirements, we had to consider:</p>
-<ul>
-<li><strong>Tokenization Task Coordination:</strong> How multiple nodes divide tokenization tasks.</li>
-<li><strong>Index Shard Management Coordination:</strong> How nodes manage shards, particularly deciding which node is responsible for which shard’s write buffer.</li>
-</ul>
-<h2 id="Community-Solution"><a href="#Community-Solution" class="headerlink" title="Community Solution"></a>Community Solution</h2><p>Coincidentally, the Loki team was also developing a Bloom filter-based index.</p>
-<p><img src="/../images/image-20250307142815234.png" alt="image-20250307142815234"></p>
-<p> Their approach involved adding Bloom compactor nodes, where multiple compactor nodes divide tasks by stream segments, with each node responsible for indexing logs in its segment. The index is built into blocks stored on SSD.</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">A stream is a unique combination of multiple labels. Loki organizes log ingestion by stream, e.g., with 3 labels and 100 value combinations, there would be 100 streams.</span><br></pre></td></tr></table></figure>
-
-<p>The community version only parallelized data processing tasks, with data storage being a simple accumulation. It didn’t optimize query data volume reduction, requiring many SSDs to improve throughput. This approach becomes cost-prohibitive at scale.</p>
-<h2 id="Community’s-Shortcomings"><a href="#Community’s-Shortcomings" class="headerlink" title="Community’s Shortcomings"></a>Community’s Shortcomings</h2><p>After testing, the community found their solution difficult to scale, so they modified their approach to extract high-cardinality fields into structured metadata and then index them. This is similar to our Stage 2 solution.</p>
-<p>The community’s approach has the following shortcomings:</p>
-<ul>
-<li><strong>High Resource Consumption:</strong> Loki documents state that index building processes about 4MB of data per core per second. For a 1GB&#x2F;s cluster, at least 256 cores are needed, with more required during peak times.</li>
-<li><strong>High Index Latency:</strong> Building indexes by cycling through streams can result in significant delays, as the time to build a new log index equals the time to process all streams.</li>
-<li><strong>Poor Query Performance:</strong> Without optimizing data storage structure, each query may load all Bloom data, limiting indexing to partial fields.</li>
-</ul>
-<h2 id="Our-Solution"><a href="#Our-Solution" class="headerlink" title="Our Solution"></a>Our Solution</h2><p>In the first half of 2024, I tested the community’s solution and modified its storage structure to optimize query speed by hash-sharding the blocks, similar to our Stage 2 approach. After six months of testing, query speed was acceptable, but index ingestion was slow, with delays exceeding an hour under reasonable resource constraints. We abandoned the community’s approach and returned to our design.</p>
-<h3 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h3><p><img src="/../images/image-20250307142649539.png" alt="image-20250307142649539"></p>
-<ul>
-<li><strong>Ingester:</strong> When flushing log chunks to storage, the Ingester also sends the <code>chunkId</code> to BBF Computer nodes. This incurs some cross-zone traffic, but since only file IDs are sent, the traffic is minimal.</li>
-<li><strong>BBF Computer Nodes:</strong> These nodes handle tokenization tasks. Upon receiving a <code>chunkId</code>, they pull the log file from S3, tokenize it, and send the tokens to the corresponding BBF Index nodes based on hash mapping.</li>
-<li><strong>BBF Index Nodes:</strong> These nodes buffer and store Bloom filter shards. Each node’s shard responsibility is determined by Consul cluster discovery and hash calculation.</li>
-</ul>
-<h3 id="Cluster-Management"><a href="#Cluster-Management" class="headerlink" title="Cluster Management"></a>Cluster Management</h3><p>Cluster management primarily addresses BBF Index cluster scaling. Since Bloom filter shards are buffered in BBF Index memory, scaling the cluster changes hash mappings, potentially causing a shard to exist on two nodes. When scaling down, although data is written to S3, node count changes can disrupt shard management.</p>
-<p><strong>Sticky Ring Solution</strong></p>
-<p>After creating all BBF shards, the node list for the current time bucket is recorded in Consul. When scaling up, new nodes only handle BBFs created for the next time bucket. When scaling down, nodes are first decommissioned, stopping new shard creation but completing writes for current shards until the maximum time window is exceeded.</p>
-<h3 id="Memory-Control-and-Stability"><a href="#Memory-Control-and-Stability" class="headerlink" title="Memory Control and Stability"></a>Memory Control and Stability</h3><p>Our index is split by time buckets (e.g., 10 minutes per BBF). Ideally, active indexes should be concentrated in the last one or two buckets, but in practice, ingestion backlogs or Ingester flush disorder like below, which can cause memory bucket counts to grow significantly, requiring resource scaling to catch up.</p>
-<p><img src="/../images/image-20250307142722947.png" alt="image-20250307142722947"></p>
-<p><strong>Distributed Window Mechanism:</strong> To control BBF bucket length, we implemented a window mechanism. However, during testing, we found that different nodes had different window elements, severely reducing ingestion speed. We upgraded to a Consul-based distributed window, where Consul stores keys like:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"># With one element</span><br><span class="line">./window/202503030240/prod-bbf-index-c-1</span><br><span class="line">./window/202503030240/prod-bbf-index-c-2</span><br><span class="line">./window/202503030240/prod-bbf-index-c-3</span><br><span class="line">./window/202503030240/prod-bbf-index-c-4</span><br><span class="line"></span><br><span class="line"># With multiple elements in the candidate queue</span><br><span class="line">./candidate/202503030250</span><br><span class="line">./candidate/202503030310</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><p><strong>When expanding the window</strong>: each BBF Index node creates a bucket key under <code>/window</code> containing its hostname. </p>
-</li>
-<li><p><strong>When shrinking the window</strong>: a node only deletes its bucket key. The bucket is deleted only when all nodes have removed their keys, as shown below:</p>
-</li>
-</ul>
-<p><img src="/../images/image-20250307142204019.png" alt="image-20250307142204019"></p>
-<p><img src="/../images/image-20250307142220547.png" alt="image-20250307142220547"></p>
-<p>After resolving bucket length and multi-node window inconsistency issues, we found that during ingestion backlogs, older shards could starve for window space. We added a candidate queue, sorting it on each change and moving the smallest bucket element into the window when space is available, resolving starvation.</p>
-<p><strong>Rectification:</strong> Despite the window and candidate mechanisms, severe bucket disorder could cause delays due to minimum buffer times. To improve ingestion speed during backlogs, we rectified <code>chunkId</code> ingestion by batch-reading <code>chunkIds</code>, grouping them by bucket, sorting, and ingesting in bucket order, significantly improving ingestion speed.</p>
-<h2 id="Summary"><a href="#Summary" class="headerlink" title="Summary"></a>Summary</h2><p>This solution:</p>
-<ul>
-<li>Reduces cross-zone traffic by having Ingester only send <code>chunkId</code> to Bloom Computer nodes.</li>
-<li>Resolves Ingester memory issues by having Computer nodes pull chunks from S3 for computation (S3 Get is cheap).</li>
-<li>Separates compute-intensive BBF Computer nodes from memory-intensive BBF Index nodes, minimizing query impact from ingestion.</li>
-<li>Coordinates tokenization and index ingestion tasks while retaining Stage 2’s data volume reduction optimizations.</li>
-<li>Introduces sticky ring for cluster management.</li>
-<li>Implements a distributed window mechanism for index ingestion memory control.</li>
-<li>Uses rectification to improve ingestion speed during backlogs.</li>
-</ul>
-<h2 id="Results-2"><a href="#Results-2" class="headerlink" title="Results"></a>Results</h2><p>After deployment, this solution supported full-text Bloom indexing with 1&#x2F;5 the resources of the community version, increasing index capacity by 30 times over Stage 2. Ingestion latency dropped from about an hour in the community version to seconds. Query data volume was thousands of times smaller than the community’s, with query times similar to Stage 2:</p>
-<ul>
-<li><strong>400-core querier + 32GB index nodes:</strong> Querying different frequency data from 20TB took about 3 seconds P95; querying 7 days of 140TB data took about 12 seconds P95.</li>
-<li><strong>200-core querier + 32GB index nodes:</strong> Querying low-frequency keywords took similar times to 400 cores; querying high and medium-frequency keywords took about twice as long, indicating potential for further optimization.</li>
-</ul>
-<h1 id="Conclusion-and-Outlook"><a href="#Conclusion-and-Outlook" class="headerlink" title="Conclusion and Outlook"></a>Conclusion and Outlook</h1><p>After three years and three major iterations, we achieved a lightweight Bloom filter index for full-text tokenization, solving Loki’s query performance issues at scale. Our solution shares some ideas with the community’s but takes a different path.</p>
-<p>The bottleneck lies in index nodes, and increasing resources can further improve query performance. Potential optimizations include:</p>
-<ul>
-<li>Vectorized computation to speed up index node judgment.</li>
-<li>Automatic degradation for high-frequency tokens.</li>
-<li>Configurable multi-granularity Bloom filters, e.g., time slices and <code>chunkId</code>.</li>
-</ul>
-<hr>
-<p>[1] Loki Cloud maintains a 50TB Memcached cluster to meet cloud customers’ query performance requirements: <a target="_blank" rel="noopener" href="https://grafana.com/blog/2023/08/23/how-we-scaled-grafana-cloud-logs-memcached-cluster-to-50tb-and-improved-reliability/">https://grafana.com/blog/2023/08/23/how-we-scaled-grafana-cloud-logs-memcached-cluster-to-50tb-and-improved-reliability/</a><br>[2] Buffered Bloom Filters on Solid State Storage, <a target="_blank" rel="noopener" href="https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=da6a07944d97723d6c154d76609b5c20a3636f9a">https://citeseerx.ist.psu.edu/document?repid=rep1&amp;type=pdf&amp;doi=da6a07944d97723d6c154d76609b5c20a3636f9a</a><br>[3] Bloom filter calculator: <a target="_blank" rel="noopener" href="https://hur.st/bloomfilter/">https://hur.st/bloomfilter/</a></p>
-<p><strong>Github</strong>: <a target="_blank" rel="noopener" href="https://github.com/honganan">https://github.com/honganan</a></p>
-<p><strong>Contact:</strong> <a href="mailto:&#x68;&#111;&#110;&#103;&#x61;&#x6e;&#97;&#110;&#64;&#113;&#x71;&#x2e;&#x63;&#111;&#x6d;">honganan@qq.com</a></p>
-<p><strong>WeChat:</strong> honganan_</p>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2025/03/07/How-I-Enhanced-Loki-to-Support-Petabyte-Scale-Log-Queries/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -414,6 +290,21 @@
     </span>
 
   
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="Word count in article">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">Word count in article: </span>
+      <span>0</span>
+    </span>
+    <span class="post-meta-item" title="Reading time">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">Reading time &asymp;</span>
+      <span>1 mins.</span>
+    </span>
 </div>
 
         </div>
@@ -482,6 +373,21 @@
     </span>
 
   
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="Word count in article">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">Word count in article: </span>
+      <span>78</span>
+    </span>
+    <span class="post-meta-item" title="Reading time">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">Reading time &asymp;</span>
+      <span>1 mins.</span>
+    </span>
 </div>
 
         </div>
@@ -535,9 +441,23 @@
     <span class="with-love">
       <i class="fa fa-heart"></i>
     </span>
-    <span class="author" itemprop="copyrightHolder">honganan</span>
+    <span class="author" itemprop="copyrightHolder">Anan Hong. All rights reserved.</span>
   </div>
-  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="Word count total">3k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="Reading time total">11 mins.</span>
+  </span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a>
   </div>
 
     </div>
@@ -554,6 +474,8 @@
     <i class="fa fa-arrow-up fa-lg"></i>
     <span>0%</span>
   </div>
+
+  <a href="https://github.com/honganan" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
 
 <noscript>
   <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
