@@ -6,6 +6,14 @@ tags:
   - loki
   - observability
   - bloom filter index
+Sidebar: true
+toc:
+  enable: true
+  number: false
+  max_depth: 3
+reward_settings:
+  enable: true
+  comment: Buy me a coffee
 ---
 
 This post presents my approach to addressing the challenges of large-scale log queries in Loki, detailing the development, iteration, and implementation of the BBF index.
@@ -13,6 +21,8 @@ This post presents my approach to addressing the challenges of large-scale log q
 # Background
 
 Loki is Grafana's open-source log aggregation system, designed with an "index-free" philosophy. This means it only indexes metadata (labels) of logs lightly, while storing log content directly without any indexing. This design offers several advantages:
+
+<!-- more -->
 
 - **Lightweight Log Ingestion:** Since no index is built for log content, log ingestion is very fast, with low resource usage. Typically, it can achieve speeds of up to 25MB/s per core.
 - **Smaller Storage Footprint:** There's no need to store massive indexes, unlike systems with inverted indexes where the index size can be as large as the log data itself.
@@ -303,11 +313,3 @@ The bottleneck lies in index nodes, and increasing resources can further improve
 [3] Bloom filter calculator: https://hur.st/bloomfilter/
 
 
-
-
-
-**Github**: https://github.com/honganan
-
-**Contact:** honganan@qq.com
-
-**WeChat:** honganan_
