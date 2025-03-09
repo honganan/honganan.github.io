@@ -7,6 +7,8 @@ toc:
   enable: true
   number: false
   max_depth: 3
+reward_settings:
+  enable: false
 ---
 
 # Hi!
