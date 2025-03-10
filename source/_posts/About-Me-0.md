@@ -14,9 +14,9 @@ reward_settings:
 # Hi!
 
 My name is Anan Hong, and I am software programmer located in ZheJiang, China. I have 10+ years of work experience, a profound knowledge of how to design and build scalable, distributed applications. Interested in Observability, Middleware, Storage system and also OLAP databases.
-<!-- more -->
-# Contact
 
+# Contact
+<!-- more -->
 - **Github**: https://github.com/honganan
 - **Github Blog**: https://honganan.github.io/
 - **Linkedin**: https://www.linkedin.com/in/anan-hong-345406338/
