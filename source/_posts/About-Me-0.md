@@ -27,23 +27,23 @@ My name is Anan Hong, and I am software programmer located in ZheJiang, China. I
 
 - **Since March 2021**
 
-  senior software engineer, Tuya.Inc(tuya.com)
+  Staff software engineer, Tuya.Inc(tuya.com)
 
 - **Mar 2018 - Jan 2021**
 
-  senior software engineer, Youzan(youzan.com)
+  Staff software engineer, Youzan(youzan.com)
 
 - **Apri 2017 - May 2018**
 
-  software engineer, Wedoctor(guahao.com)
+  Staff software engineer, Wedoctor(guahao.com)
 
 - **Jun 2015 - Mar 2017**
 
-  software engineer, Yeepay(yeepay.com)
+  Senior software engineer, Yeepay(yeepay.com)
 
 - **Apri 2013 - May 2015**
 
-  software engineer, rrtx（bjrrtx.com）	
+  Software engineer, rrtx（bjrrtx.com）	
 
 # Education
 
