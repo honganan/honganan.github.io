@@ -19,12 +19,12 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"honganan.github.io","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.22.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
 
-    <meta name="description" content="本文介绍了我在面对 Loki 查询大规模日志上的挑战，研发迭代 BBF 索引的思考过程及实践落地经验  背景Loki 是 Grafana 的开源日志产品，它基于 index-free 理念设计，这种设计只对日志的元信息（标签）进行轻量级索引，而对日志内容不做任何索引直接存储。这种方案有以下优点：  日志写入轻量 ：因为没有对日志内容构建任何索引，日志写入速度非常快，资源使用率非常低，通常可以达到">
+    <meta name="description" content="本文介绍了我在面对 Loki 查询大规模日志上的挑战，研发迭代 BBF 索引的思考过程及实践落地经验  背景Loki 是 Grafana 的开源日志产品，它基于 index-free 理念设计，这种设计只对日志的元信息（标签）进行轻量级索引，而对日志内容不做任何索引直接存储。这种方案有以下优点：">
 <meta property="og:type" content="article">
 <meta property="og:title" content="我如何增强Loki支持PB级日志查询">
 <meta property="og:url" content="https://honganan.github.io/2025/03/19/%E6%88%91%E5%A6%82%E4%BD%95%E5%A2%9E%E5%BC%BALoki%E6%94%AF%E6%8C%81PB%E7%BA%A7%E6%97%A5%E5%BF%97%E6%9F%A5%E8%AF%A2/index.html">
 <meta property="og:site_name" content="honganan">
-<meta property="og:description" content="本文介绍了我在面对 Loki 查询大规模日志上的挑战，研发迭代 BBF 索引的思考过程及实践落地经验  背景Loki 是 Grafana 的开源日志产品，它基于 index-free 理念设计，这种设计只对日志的元信息（标签）进行轻量级索引，而对日志内容不做任何索引直接存储。这种方案有以下优点：  日志写入轻量 ：因为没有对日志内容构建任何索引，日志写入速度非常快，资源使用率非常低，通常可以达到">
+<meta property="og:description" content="本文介绍了我在面对 Loki 查询大规模日志上的挑战，研发迭代 BBF 索引的思考过程及实践落地经验  背景Loki 是 Grafana 的开源日志产品，它基于 index-free 理念设计，这种设计只对日志的元信息（标签）进行轻量级索引，而对日志内容不做任何索引直接存储。这种方案有以下优点：">
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://static001.geekbang.org/infoq/29/29513c3abcb7b75f786fb3e9371638e3.png">
 <meta property="og:image" content="https://static001.geekbang.org/infoq/c3/c33829eb6d34da15a090f71a35c5399b.png">
@@ -40,7 +40,7 @@
 <meta property="og:image" content="https://static001.geekbang.org/infoq/ba/baf0b1375a856be2d382eed1810b07c7.png">
 <meta property="og:image" content="https://static001.geekbang.org/infoq/07/071ab341189e444b368f21c0d2915b41.png">
 <meta property="article:published_time" content="2025-03-19T09:30:36.000Z">
-<meta property="article:modified_time" content="2025-03-20T09:12:54.687Z">
+<meta property="article:modified_time" content="2025-03-20T09:18:40.631Z">
 <meta property="article:author" content="honganan">
 <meta property="article:tag" content="log">
 <meta property="article:tag" content="loki">
@@ -217,7 +217,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-03-20 17:12:54" itemprop="dateModified" datetime="2025-03-20T17:12:54+08:00">2025-03-20</time>
+      <time title="Modified: 2025-03-20 17:18:40" itemprop="dateModified" datetime="2025-03-20T17:18:40+08:00">2025-03-20</time>
     </span>
 
   
@@ -255,6 +255,8 @@
 <p>本文介绍了我在面对 Loki 查询大规模日志上的挑战，研发迭代 BBF 索引的思考过程及实践落地经验</p>
 </blockquote>
 <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>Loki 是 Grafana 的开源日志产品，它基于 index-free 理念设计，这种设计只对日志的元信息（标签）进行轻量级索引，而对日志内容不做任何索引直接存储。这种方案有以下优点：</p>
+<span id="more"></span>
+
 <ul>
 <li><strong>日志写入轻量</strong> ：因为没有对日志内容构建任何索引，日志写入速度非常快，资源使用率非常低，通常可以达到单核 25MB&#x2F;s 的速度；</li>
 <li><strong>存储数据量小</strong> ：不需要存储巨大的索引，而其他有倒排索引的系统，索引与日志的大小比例通常能达到 1:1；</li>
