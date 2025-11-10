@@ -40,7 +40,7 @@
 <meta property="og:image" content="https://honganan.github.io/images/image-20250307142204019.png">
 <meta property="og:image" content="https://honganan.github.io/images/image-20250307142220547.png">
 <meta property="article:published_time" content="2025-03-19T09:30:36.000Z">
-<meta property="article:modified_time" content="2025-11-10T09:45:13.888Z">
+<meta property="article:modified_time" content="2025-11-10T10:03:31.579Z">
 <meta property="article:author" content="honganan">
 <meta property="article:tag" content="log">
 <meta property="article:tag" content="loki">
@@ -217,7 +217,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-11-10 17:45:13" itemprop="dateModified" datetime="2025-11-10T17:45:13+08:00">2025-11-10</time>
+      <time title="Modified: 2025-11-10 18:03:31" itemprop="dateModified" datetime="2025-11-10T18:03:31+08:00">2025-11-10</time>
     </span>
 
   
@@ -234,7 +234,7 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">Word count in article: </span>
-      <span>5.5k</span>
+      <span>5.6k</span>
     </span>
     <span class="post-meta-item" title="Reading time">
       <span class="post-meta-item-icon">
@@ -405,14 +405,14 @@
 <h2 id="成果"><a href="#成果" class="headerlink" title="成果"></a>成果</h2><p>这个方案上线后，实现了用社区版本 1&#x2F;5 的资源支持了全文分词 bloom 索引，索引容量比阶段二提升了 30 倍。写入延时从社区版的大约 1小时降低到秒级。查询需要加载的数据量是社区的几千分之一，耗时与方案二基本一致:</p>
 <ul>
 <li>400 核查询器 + 32GB 索引节点：从 20TB 数据中查询不同频率的数据 P95 耗时约 3 秒，查询 7 天共 140TB 数据 P95 耗时约 12 秒；</li>
-<li>200 核查询器 + 32GB 索引节点：查询低频关键字耗时与 400 核相当，查询高频与中频关键字时耗时大约增长一倍。表面后续通过优化高频关键字索引判断过程可进一步优化性能；</li>
+<li>200 核查询器 + 32GB 索引节点：查询低频关键字耗时与 400 核相当，查询高频与中频关键字时耗时大约增长一倍。表明后续通过优化高频关键字索引判断过程可进一步优化性能；</li>
 </ul>
 <h1 id="总结展望"><a href="#总结展望" class="headerlink" title="总结展望"></a>总结展望</h1><p>经过 3 年三个大版本的迭代，我们实现了全文分词的轻量级 Bloom 索引，解决了 Loki 在大规模日志量下的查询性能问题。我们的方案与社区方案在部分思路上不谋而合，但在设计上又走出了不同的路径。</p>
 <p>从上面结果可以看出瓶颈其实在索引节点中，适当增加资源可以进一步提升查询性能。性能部分还可以做的优化可能包括：</p>
 <ul>
 <li>向量化计算提高索引节点判断速度;</li>
 <li>高频词自动降级优化;</li>
-<li>支持可配置的多粒度 Bloom 索引，比如：时间片和 chunkId;</li>
+<li>支持可配置的多粒度 Bloom 索引，比如：时间片级和 chunk 级;</li>
 </ul>
 <p>[1] Loki Cloud 为了满足云服务大客户的查询性能要求，就运维了一个高达 50TB 的 Memcached 缓存集群，<a target="_blank" rel="noopener" href="https://grafana.com/blog/2023/08/23/how-we-scaled-grafana-cloud-logs-memcached-cluster-to-50tb-and-improved-reliability/">https://grafana.com/blog/2023/08/23/how-we-scaled-grafana-cloud-logs-memcached-cluster-to-50tb-and-improved-reliability/</a></p>
 <p>[2] 《Buffered Bloom Filters on Solid State Storage》，<a target="_blank" rel="noopener" href="https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=da6a07944d97723d6c154d76609b5c20a3636f9a">https://citeseerx.ist.psu.edu/document?repid=rep1&amp;type=pdf&amp;doi=da6a07944d97723d6c154d76609b5c20a3636f9a</a></p>
