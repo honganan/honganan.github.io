@@ -26,28 +26,28 @@
 <meta property="og:site_name" content="honganan">
 <meta property="og:description" content="本文介绍了我在面对 Loki 查询大规模日志上的挑战，研发迭代 BBF 索引的思考过程及实践落地经验  背景Loki 是 Grafana 的开源日志产品，它基于 index-free 理念设计，这种设计只对日志的元信息（标签）进行轻量级索引，而对日志内容不做任何索引直接存储。这种方案有以下优点：">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="https://static001.geekbang.org/infoq/29/29513c3abcb7b75f786fb3e9371638e3.png">
-<meta property="og:image" content="https://static001.geekbang.org/infoq/c3/c33829eb6d34da15a090f71a35c5399b.png">
-<meta property="og:image" content="https://static001.geekbang.org/infoq/81/81b1ac55a22b5f8ec924cf7b014ba5c1.png">
-<meta property="og:image" content="https://static001.geekbang.org/infoq/17/179c58c8bbba241afce162e6bdaa7627.png">
-<meta property="og:image" content="https://static001.geekbang.org/infoq/b8/b80c3400b43be6deeaf6d27c4ed41f98.png">
-<meta property="og:image" content="https://static001.geekbang.org/infoq/a7/a7823d27d445154115378169d176943d.png">
-<meta property="og:image" content="https://static001.geekbang.org/infoq/7e/7e722bb804ac64eed4644d1289ed837c.png">
-<meta property="og:image" content="https://static001.geekbang.org/infoq/2c/2c57eb92fcb9b7295f7dbf5232020c88.png">
-<meta property="og:image" content="https://static001.geekbang.org/infoq/b2/b23b7e4e91899103c5461acf754f27b3.png">
-<meta property="og:image" content="https://static001.geekbang.org/infoq/1a/1a10dd7f8927707914e7ed1fd9c86cfa.png">
-<meta property="og:image" content="https://static001.geekbang.org/infoq/81/813e1314c6d0ff57dbde9d952cdb08da.png">
-<meta property="og:image" content="https://static001.geekbang.org/infoq/ba/baf0b1375a856be2d382eed1810b07c7.png">
-<meta property="og:image" content="https://static001.geekbang.org/infoq/07/071ab341189e444b368f21c0d2915b41.png">
+<meta property="og:image" content="https://honganan.github.io/images/journey.png">
+<meta property="og:image" content="https://honganan.github.io/images/image-20250307142527904.png">
+<meta property="og:image" content="https://honganan.github.io/images/image-20250307142547982.png">
+<meta property="og:image" content="https://honganan.github.io/images/image-20250307140756845.png">
+<meta property="og:image" content="https://honganan.github.io/images/image-20250307141225525.png">
+<meta property="og:image" content="https://honganan.github.io/images/image-20250307141730107.png">
+<meta property="og:image" content="https://honganan.github.io/images/image-20250307142610301.png">
+<meta property="og:image" content="https://honganan.github.io/images/image-20250307141944185.png">
+<meta property="og:image" content="https://honganan.github.io/images/image-20250307142815234.png">
+<meta property="og:image" content="https://honganan.github.io/images/image-20250307142649539.png">
+<meta property="og:image" content="https://honganan.github.io/images/image-20250307142722947.png">
+<meta property="og:image" content="https://honganan.github.io/images/image-20250307142204019.png">
+<meta property="og:image" content="https://honganan.github.io/images/image-20250307142220547.png">
 <meta property="article:published_time" content="2025-03-19T09:30:36.000Z">
-<meta property="article:modified_time" content="2025-03-20T09:18:40.631Z">
+<meta property="article:modified_time" content="2025-11-10T09:45:13.888Z">
 <meta property="article:author" content="honganan">
 <meta property="article:tag" content="log">
 <meta property="article:tag" content="loki">
 <meta property="article:tag" content="observability">
 <meta property="article:tag" content="bloom filter index">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://static001.geekbang.org/infoq/29/29513c3abcb7b75f786fb3e9371638e3.png">
+<meta name="twitter:image" content="https://honganan.github.io/images/journey.png">
 
 
 <link rel="canonical" href="https://honganan.github.io/2025/03/19/%E6%88%91%E5%A6%82%E4%BD%95%E5%A2%9E%E5%BC%BALoki%E6%94%AF%E6%8C%81PB%E7%BA%A7%E6%97%A5%E5%BF%97%E6%9F%A5%E8%AF%A2/">
@@ -217,7 +217,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-03-20 17:18:40" itemprop="dateModified" datetime="2025-03-20T17:18:40+08:00">2025-03-20</time>
+      <time title="Modified: 2025-11-10 17:45:13" itemprop="dateModified" datetime="2025-11-10T17:45:13+08:00">2025-11-10</time>
     </span>
 
   
@@ -266,7 +266,7 @@
 <p>但是如果有某个应用日志量达到 TB 级时，Loki 对这种长板应用的查询会变得很吃力[1]，特别对“大海捞针”式的查询，比如从几十 TB 日志中搜索一条 tid 或 requestId。而传统有倒排索引的系统处理这种查询耗时通常都小于 1s。</p>
 <h1 id="解决历程"><a href="#解决历程" class="headerlink" title="解决历程"></a>解决历程</h1><p>社区也有不少人提出类似问题，Loki 团队一直在思考好的解决方案，但我们在 2022 年上线了 Loki 后就开始迫切需要解决这个问题。</p>
 <p>为此我们经过了几个阶段的探索，可以简单概括如下：</p>
-<p><img src="https://static001.geekbang.org/infoq/29/29513c3abcb7b75f786fb3e9371638e3.png" alt="img"></p>
+<p><img src="/../images/journey.png" alt="journey"></p>
 <p><strong>第一阶段</strong> ：提取 tid 等高基数字段写入 redis 布隆过滤器</p>
 <p><strong>第二阶段</strong> ：研发基于 SSD 存储的 bloom 索引 <strong>BBF 1.0</strong>，写入更多常用查询字段</p>
 <p><strong>第三阶段</strong> ：设计研发基于 S3 的大规模全文分词 bloom 索引 <strong>BBF 2.0</strong></p>
@@ -275,18 +275,17 @@
 <blockquote>
 <p>布隆过滤器是个概率数据结构，它有一定的误判率，当它返回存在时有可能不存在，但返回结果不存在则一定不存在，因此可以用它先过滤掉一部分不包含查询关键字的数据。</p>
 </blockquote>
-<h2 id="1-写入链路"><a href="#1-写入链路" class="headerlink" title="1. 写入链路"></a>1. 写入链路</h2><p><img src="https://static001.geekbang.org/infoq/c3/c33829eb6d34da15a090f71a35c5399b.png" alt="img"></p>
+<h2 id="1-写入链路"><a href="#1-写入链路" class="headerlink" title="1. 写入链路"></a>1. 写入链路</h2><p><img src="/../images/image-20250307142527904.png" alt="image-20250307142527904"></p>
 <p>写入链路的改造包括几个部分：</p>
 <p>1）扩展 Loki 写入数据协议，从日志内容中提取出相关的字段放在 attachment 中写入 Loki；</p>
 <p>2）改造 Loki 写入链路，将 attachment 字段按 bloom-filter 分组后批量写入过滤器；</p>
 <p>我们按每个应用每 10 分钟创建一个过滤器，过滤器名字格式为：${tenantId}_${app}_202503041910</p>
 <h2 id="2-查询链路"><a href="#2-查询链路" class="headerlink" title="2. 查询链路"></a>2. 查询链路</h2><p>查询时，根据字段和时间先从布隆过滤器查找，过滤掉不包含对应value的时间片，以此减小搜索的时间范围：</p>
-<p><img src="https://static001.geekbang.org/infoq/81/81b1ac55a22b5f8ec924cf7b014ba5c1.png" alt="img"></p>
+<p><img src="/../images/image-20250307142547982.png" alt="image-20250307142547982"></p>
 <p>比如：如果取子查询的结束时间点按 10 分钟取整得到“202503041910”，用查询条件中的关键字去名为 “${tenant}_${app}_202503041910” 的 bloom-filter 中过滤，如果关键字在该过滤器中不存在，那么这个子查询就不需要执行，如果返回存在，则拉取日志文件数据进行搜索。</p>
 <h2 id="3-容错设计"><a href="#3-容错设计" class="headerlink" title="3. 容错设计"></a>3. 容错设计</h2><p>1）写入链路在加入 attachment 出现异常时，向 redis 中设置 bloom-filter 分片为脏数据的标识，比如：Dirty_myapp_2769901；</p>
 <p>2）查询时如果发现有该标识则降级为全文查找；</p>
-<p>﻿</p>
-<p><img src="https://static001.geekbang.org/infoq/17/179c58c8bbba241afce162e6bdaa7627.png" alt="img"></p>
+<p>﻿<img src="/../images/image-20250307140756845.png" alt="image-20250307140756845"></p>
 <p>在这个版本上线后，我们随后又进行了一个版本迭代，将时间片粒度的过滤器优化为文件 id 粒度。写入时仍然按时间片创建 bloom-filter，然后在写入字段值时在每个值后面拼接上所在日志文件的 id（Loki 中叫 chunkId），即最终写入的 key 是:</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">key + &quot;_&quot; + chunkId</span><br></pre></td></tr></table></figure>
 
@@ -300,17 +299,17 @@
 <li><strong>查询时</strong>：通过 hash 计算定位到 key 所在的具体分片，然后从 SSD 读取对应的这个分片即可；</li>
 </ul>
 <p>这种分片机制可以有效减少查询时从 SSD 读取的数据量，同时采取批量写入和读取数据短暂缓存的方法，使用户最终对延时增加无感知。</p>
-<h3 id="写入流程"><a href="#写入流程" class="headerlink" title="写入流程"></a>写入流程</h3><p><img src="https://static001.geekbang.org/infoq/b8/b80c3400b43be6deeaf6d27c4ed41f98.png" alt="img"></p>
+<h3 id="写入流程"><a href="#写入流程" class="headerlink" title="写入流程"></a>写入流程</h3><p><img src="/../images/image-20250307141225525.png" alt="image-20250307141225525"></p>
 <ul>
 <li>当日志块刷存储时，批量写入其中的所有索引字段值到对应的布隆过滤器中；</li>
 <li>写入布隆过滤器时先根据字段值 hash 定位到过滤器的某个分片，然后写入该分片中；</li>
 </ul>
-<h3 id="查询流程"><a href="#查询流程" class="headerlink" title="查询流程"></a>查询流程</h3><p><img src="https://static001.geekbang.org/infoq/a7/a7823d27d445154115378169d176943d.png" alt="img"></p>
+<h3 id="查询流程"><a href="#查询流程" class="headerlink" title="查询流程"></a>查询流程</h3><p><img src="/../images/image-20250307141730107.png" alt="image-20250307141730107"></p>
 <ul>
 <li>查询时先根据关键字的 hash 值定位到分片，只从 SSD 加载该分片到内存；</li>
 <li>判断时将关键字和每个 chunkId 进行拼接后去过滤器分片中过滤，以确定这个 chunk 是否可能包含关键字，如果不包含那么这个 chunk 文件就不需要查询；</li>
 </ul>
-<h2 id="2-存储结构"><a href="#2-存储结构" class="headerlink" title="2. 存储结构"></a>2. 存储结构</h2><p><img src="https://static001.geekbang.org/infoq/7e/7e722bb804ac64eed4644d1289ed837c.png" alt="img"></p>
+<h2 id="2-存储结构"><a href="#2-存储结构" class="headerlink" title="2. 存储结构"></a>2. 存储结构</h2><p><img src="/../images/image-20250307142610301.png" alt="image-20250307142610301"></p>
 <ul>
 <li><strong>结构</strong>：每个过滤器由一个 meta 和多个“子过滤器”组成；</li>
 <li><strong>存储</strong>：meta 在内存缓存，用来记录 shard 数量等元信息，子过滤器存在 SSD 文件中，里面就是布隆过滤器的位数组；</li>
@@ -325,7 +324,7 @@
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">// prefix 使用每 10 分钟的时间 bucket（202308111210）时</span><br><span class="line">./202308111210</span><br><span class="line">	202308111210_fake_tid_myapp_meta.json</span><br><span class="line">  202308111210_fake_tid_myapp_s0</span><br><span class="line">  202308111210_fake_tid_myapp_s0_1</span><br><span class="line">	202308111210_fake_tid_myapp_s1</span><br><span class="line">	202308111210_fake_tid_myapp_s1_1</span><br><span class="line">  ...</span><br><span class="line">  202308111210_fake_tid_myapp_s3000</span><br><span class="line">  202308111210_fake_tid_myapp_s3000_1</span><br></pre></td></tr></table></figure>
 
 <h2 id="3-数据写入与落盘"><a href="#3-数据写入与落盘" class="headerlink" title="3. 数据写入与落盘"></a>3. 数据写入与落盘</h2><p>数据写入时先在内存中构建布隆过滤器，一段时间后写入 SSD，随后在有新数据需要继续写入时先在内存缓存数据，然后定期更新写入，相关动作的时间关系如下图所示：</p>
-<p><img src="https://static001.geekbang.org/infoq/2c/2c57eb92fcb9b7295f7dbf5232020c88.png" alt="img"></p>
+<p><img src="/../images/image-20250307141944185.png" alt="image-20250307141944185"></p>
 <ul>
 <li><strong>t0-t1</strong>：这里的 BBF 是按每 10 分钟的粒度创建的，即 t0-t1 这段时间所有数据写入同一个 BBF 索引（BBF 索引中有很多分片）；</li>
 <li><strong>t2</strong>：在每个 BBF 所属的 10 分钟窗口期过后的一段时间（flush_delay），将 BBF flush 至 SSD 上；</li>
@@ -350,7 +349,7 @@
 <li><strong>索引的分片管理协调</strong>：节点间如何分工协作管理所有分片，根本问题是如何决定谁负责哪些分片的写入缓冲；</li>
 </ol>
 <h2 id="社区方案"><a href="#社区方案" class="headerlink" title="社区方案"></a>社区方案</h2><p>巧合的是这个时候 Loki 团队也在基于布隆过滤器开发他们的索引，我们先来看看 Loki 团队的方案：</p>
-<p><img src="https://static001.geekbang.org/infoq/b2/b23b7e4e91899103c5461acf754f27b3.png" alt="img"></p>
+<p><img src="/../images/image-20250307142815234.png" alt="image-20250307142815234"></p>
 <p>如上图所示，Loki 增加了 Bloom compactor 节点，多个 compactor 节点按 stream 分段协调任务分配，每个节点负责一段 stream 中日志的索引，索引构建中会生成一系列的 Blocks 存储在 SSD上。</p>
 <blockquote>
 <p>stream 是多个标签的唯一组合，Loki 按 stream 组织日志写入，比如共有 3 个标签，他们的值有 100 种组合就会有 100 个 stream</p>
@@ -364,7 +363,7 @@
 <li><strong>查询性能差</strong>：因为没有做数据存储结构的优化，每次查询可能要加载所有 bloom 数据，因此只能做部分字段级别的索引；</li>
 </ul>
 <h2 id="我们的方案"><a href="#我们的方案" class="headerlink" title="我们的方案"></a>我们的方案</h2><p>2024 年上半年我在测试社区方案的基础上对它进行了存储结构改造，将生成的 Block 进行了类似我们阶段二的 Hash 分片式存储以优化查询速度，经过半年改造后实测查询速度是没问题的，但是在合理成本的资源条件下索引写入速度很慢，每轮延时达到 1 小时以上。于是放弃社区方案回到自己的设计上来。</p>
-<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img src="https://static001.geekbang.org/infoq/1a/1a10dd7f8927707914e7ed1fd9c86cfa.png" alt="img"></p>
+<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img src="/../images/image-20250307142649539.png" alt="image-20250307142649539"></p>
 <ul>
 <li>Ingester 在将日志块文件刷存储时，同时将 chunkId 发送到 BBF Computer 节点，这部分会有跨区流量，但是因为只发送文件 id，跨区流量比较小；</li>
 <li><strong>BBF Computer 节点</strong>：BBF Computer 节点主要负责分词计算任务，接收到 chunkId 后，从 S3 重新拉取日志文件进行分词计算，然后将分词后的 key 发送到对应的 BBF Index 节点，发送规则是先根据 key hash 映射到某个分片，然后根据分片 hash 映射到某个 BBF Index 节点；</li>
@@ -376,7 +375,7 @@
 <p>解决办法是在创建 BBF 所有分片后，记录当前时间 bucket 的节点列表，写到 Consul 中。集群扩容后，新节点只对下一个时间 bucket 新创建的 BBF 生效。</p>
 <p>集群缩容时，先执行下线接口，此时下线的节点不会接受新分片的创建，但是仍然会完成当前负责分片的写入，直到超出最大时间窗口不会再有该 bucket 的数据写入方可下线服务。</p>
 <h3 id="内存控制与稳定性"><a href="#内存控制与稳定性" class="headerlink" title="内存控制与稳定性"></a>内存控制与稳定性</h3><p>我们的索引在时间维度上是按时间 bucket 拆分的，比如：每 10 分钟一个 BBF。理想情况下正在写入的索引应该聚集在最近一到两个 bucket 上，但是实际情况可能会出现写入堆积，或者 Ingester 刷盘数据出现下面的乱序情况：</p>
-<p><img src="https://static001.geekbang.org/infoq/81/813e1314c6d0ff57dbde9d952cdb08da.png" alt="img"></p>
+<p><img src="/../images/image-20250307142722947.png" alt="image-20250307142722947"></p>
 <p>这可能导致内存中 bucket 数量增长得很大，特别在写入出现堆积后重新恢复时，可能不得不成倍扩容索引节点资源才能追上正常写入。</p>
 <p><strong>分布式 window 机制</strong></p>
 <p>要控制 BBF bucket 长度很容易想到用 window 机制，但在实现了本地 window 后，线上试运行发现出现了不同节点 window 元素不一样的情况，导致写入速度严重下降。</p>
@@ -387,8 +386,8 @@
 <li><strong>扩展 window 时</strong>，每个 BBF Index 节点都会在 &#x2F;window 下面创建包含节点主机名的 bucket key。</li>
 <li><strong>缩小 window 时</strong>，当某个节点缩小 window 时，只删除该节点对应的 bucket key，当 bucket 下所有节点都删除掉时才认为该 bucket 在所有节点都已写入完成，此时才会删除该 bucket。如下图所示：</li>
 </ul>
-<p><img src="https://static001.geekbang.org/infoq/ba/baf0b1375a856be2d382eed1810b07c7.png" alt="img"></p>
-<p><img src="https://static001.geekbang.org/infoq/07/071ab341189e444b368f21c0d2915b41.png" alt="img"></p>
+<p><img src="/../images/image-20250307142204019.png" alt="image-20250307142204019"></p>
+<p><img src="/../images/image-20250307142220547.png" alt="image-20250307142220547"></p>
 <p>在 bucket 长度失控与多节点 window 不一致问题都得到解决后，又发现在写入堆积后一些较早的分片一直抢占不到 window 空间，出现了饥饿现象。于是我又在 window 基础上增加了候选队列，候选队列每次变更时进行排序，当 window 有空闲空间时，将候选队列中最小的 bucket 元素取出加入 window，解决排队等待饥饿问题。</p>
 <p><strong>整流</strong> </p>
 <p>虽然有了完善的 window 和 candidate 机制，但是当写入 bucket 出现严重乱序时，因为每个 bucket 在内存中是有最小 buffer 时间的，因此当 window 满了以后只能等待旧的 BBF 刷盘。为了提高堆积时的写入速度避免卡在等待 window 空间上，我额外对写入的 chunkId 进行了整流。</p>
