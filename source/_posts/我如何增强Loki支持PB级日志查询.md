@@ -40,9 +40,7 @@ Loki 的数据是按标签组织存储的，同一组相同标签值的日志存
 
 为此我们经过了几个阶段的探索，可以简单概括如下：
 
-
-
-![img](https://static001.geekbang.org/infoq/29/29513c3abcb7b75f786fb3e9371638e3.png)
+![journey](../images/journey.png)
 
 **第一阶段** ：提取 tid 等高基数字段写入 redis 布隆过滤器
 
@@ -62,7 +60,7 @@ Loki 的数据是按标签组织存储的，同一组相同标签值的日志存
 
 ## 1. 写入链路
 
-![img](https://static001.geekbang.org/infoq/c3/c33829eb6d34da15a090f71a35c5399b.png)
+![image-20250307142527904](..//images/image-20250307142527904.png)
 
 写入链路的改造包括几个部分：
 
@@ -76,7 +74,7 @@ Loki 的数据是按标签组织存储的，同一组相同标签值的日志存
 
 查询时，根据字段和时间先从布隆过滤器查找，过滤掉不包含对应value的时间片，以此减小搜索的时间范围：
 
-![img](https://static001.geekbang.org/infoq/81/81b1ac55a22b5f8ec924cf7b014ba5c1.png)
+![image-20250307142547982](../images/image-20250307142547982.png)
 
 比如：如果取子查询的结束时间点按 10 分钟取整得到“202503041910”，用查询条件中的关键字去名为 “${tenant}_${app}_202503041910” 的 bloom-filter 中过滤，如果关键字在该过滤器中不存在，那么这个子查询就不需要执行，如果返回存在，则拉取日志文件数据进行搜索。
 
@@ -86,11 +84,7 @@ Loki 的数据是按标签组织存储的，同一组相同标签值的日志存
 
 2）查询时如果发现有该标识则降级为全文查找；
 
-﻿
-
-![img](https://static001.geekbang.org/infoq/17/179c58c8bbba241afce162e6bdaa7627.png)
-
-
+﻿![image-20250307140756845](../images/image-20250307140756845.png)
 
 在这个版本上线后，我们随后又进行了一个版本迭代，将时间片粒度的过滤器优化为文件 id 粒度。写入时仍然按时间片创建 bloom-filter，然后在写入字段值时在每个值后面拼接上所在日志文件的 id（Loki 中叫 chunkId），即最终写入的 key 是:
 
@@ -123,21 +117,21 @@ SSD 相比内存，I/O 速度上差了一到两个数量级。但布隆过滤器
 
 ### 写入流程
 
-![img](https://static001.geekbang.org/infoq/b8/b80c3400b43be6deeaf6d27c4ed41f98.png)
+![image-20250307141225525](../images/image-20250307141225525.png)
 
 - 当日志块刷存储时，批量写入其中的所有索引字段值到对应的布隆过滤器中；
 - 写入布隆过滤器时先根据字段值 hash 定位到过滤器的某个分片，然后写入该分片中；
 
 ### 查询流程
 
-![img](https://static001.geekbang.org/infoq/a7/a7823d27d445154115378169d176943d.png)
+![image-20250307141730107](../images/image-20250307141730107.png)
 
 - 查询时先根据关键字的 hash 值定位到分片，只从 SSD 加载该分片到内存；
 - 判断时将关键字和每个 chunkId 进行拼接后去过滤器分片中过滤，以确定这个 chunk 是否可能包含关键字，如果不包含那么这个 chunk 文件就不需要查询；
 
 ## 2. 存储结构
 
-![img](https://static001.geekbang.org/infoq/7e/7e722bb804ac64eed4644d1289ed837c.png)
+![image-20250307142610301](../images/image-20250307142610301.png)
 
 - **结构**：每个过滤器由一个 meta 和多个“子过滤器”组成；
 - **存储**：meta 在内存缓存，用来记录 shard 数量等元信息，子过滤器存在 SSD 文件中，里面就是布隆过滤器的位数组；
@@ -176,7 +170,7 @@ SSD 相比内存，I/O 速度上差了一到两个数量级。但布隆过滤器
 
 数据写入时先在内存中构建布隆过滤器，一段时间后写入 SSD，随后在有新数据需要继续写入时先在内存缓存数据，然后定期更新写入，相关动作的时间关系如下图所示：
 
-![img](https://static001.geekbang.org/infoq/2c/2c57eb92fcb9b7295f7dbf5232020c88.png)
+![image-20250307141944185](../images/image-20250307141944185.png)
 
 - **t0-t1**：这里的 BBF 是按每 10 分钟的粒度创建的，即 t0-t1 这段时间所有数据写入同一个 BBF 索引（BBF 索引中有很多分片）；
 - **t2**：在每个 BBF 所属的 10 分钟窗口期过后的一段时间（flush_delay），将 BBF flush 至 SSD 上；
@@ -218,7 +212,7 @@ BBF 1.0 索引落地后，我们用同等成本支持了比原来大 50 倍的�
 
 巧合的是这个时候 Loki 团队也在基于布隆过滤器开发他们的索引，我们先来看看 Loki 团队的方案：
 
-![img](https://static001.geekbang.org/infoq/b2/b23b7e4e91899103c5461acf754f27b3.png)
+![image-20250307142815234](../images/image-20250307142815234.png)
 
 如上图所示，Loki 增加了 Bloom compactor 节点，多个 compactor 节点按 stream 分段协调任务分配，每个节点负责一段 stream 中日志的索引，索引构建中会生成一系列的 Blocks 存储在 SSD上。
 
@@ -242,7 +236,7 @@ BBF 1.0 索引落地后，我们用同等成本支持了比原来大 50 倍的�
 
 ### 架构
 
-![img](https://static001.geekbang.org/infoq/1a/1a10dd7f8927707914e7ed1fd9c86cfa.png)
+![image-20250307142649539](../images/image-20250307142649539.png)
 
 - Ingester 在将日志块文件刷存储时，同时将 chunkId 发送到 BBF Computer 节点，这部分会有跨区流量，但是因为只发送文件 id，跨区流量比较小；
 - **BBF Computer 节点**：BBF Computer 节点主要负责分词计算任务，接收到 chunkId 后，从 S3 重新拉取日志文件进行分词计算，然后将分词后的 key 发送到对应的 BBF Index 节点，发送规则是先根据 key hash 映射到某个分片，然后根据分片 hash 映射到某个 BBF Index 节点；
@@ -264,7 +258,7 @@ BBF 1.0 索引落地后，我们用同等成本支持了比原来大 50 倍的�
 
 我们的索引在时间维度上是按时间 bucket 拆分的，比如：每 10 分钟一个 BBF。理想情况下正在写入的索引应该聚集在最近一到两个 bucket 上，但是实际情况可能会出现写入堆积，或者 Ingester 刷盘数据出现下面的乱序情况：
 
-![img](https://static001.geekbang.org/infoq/81/813e1314c6d0ff57dbde9d952cdb08da.png)
+![image-20250307142722947](../images/image-20250307142722947.png)
 
 这可能导致内存中 bucket 数量增长得很大，特别在写入出现堆积后重新恢复时，可能不得不成倍扩容索引节点资源才能追上正常写入。
 
@@ -289,9 +283,9 @@ BBF 1.0 索引落地后，我们用同等成本支持了比原来大 50 倍的�
 - **扩展 window 时**，每个 BBF Index 节点都会在 /window 下面创建包含节点主机名的 bucket key。
 - **缩小 window 时**，当某个节点缩小 window 时，只删除该节点对应的 bucket key，当 bucket 下所有节点都删除掉时才认为该 bucket 在所有节点都已写入完成，此时才会删除该 bucket。如下图所示：
 
-![img](https://static001.geekbang.org/infoq/ba/baf0b1375a856be2d382eed1810b07c7.png)
+![image-20250307142204019](../images/image-20250307142204019.png)
 
-![img](https://static001.geekbang.org/infoq/07/071ab341189e444b368f21c0d2915b41.png)
+![image-20250307142220547](../images/image-20250307142220547.png)
 
 在 bucket 长度失控与多节点 window 不一致问题都得到解决后，又发现在写入堆积后一些较早的分片一直抢占不到 window 空间，出现了饥饿现象。于是我又在 window 基础上增加了候选队列，候选队列每次变更时进行排序，当 window 有空闲空间时，将候选队列中最小的 bucket 元素取出加入 window，解决排队等待饥饿问题。
 
