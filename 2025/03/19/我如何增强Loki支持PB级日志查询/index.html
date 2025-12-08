@@ -40,7 +40,7 @@
 <meta property="og:image" content="https://honganan.github.io/images/image-20250307142204019.png">
 <meta property="og:image" content="https://honganan.github.io/images/image-20250307142220547.png">
 <meta property="article:published_time" content="2025-03-19T09:30:36.000Z">
-<meta property="article:modified_time" content="2025-11-10T10:03:31.579Z">
+<meta property="article:modified_time" content="2025-12-08T06:24:11.565Z">
 <meta property="article:author" content="honganan">
 <meta property="article:tag" content="log">
 <meta property="article:tag" content="loki">
@@ -217,7 +217,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-11-10 18:03:31" itemprop="dateModified" datetime="2025-11-10T18:03:31+08:00">2025-11-10</time>
+      <time title="Modified: 2025-12-08 14:24:11" itemprop="dateModified" datetime="2025-12-08T14:24:11+08:00">2025-12-08</time>
     </span>
 
   
@@ -295,7 +295,7 @@
 <p>于是我想能不能将布隆过滤器存储在磁盘中？在查找资料的过程中我从一篇论文[1]中找到灵感，因此考虑结合该论文和我们的场景设计一种基于 SSD 的布隆过滤器索引，称之为 BBF 1.0。</p>
 <h2 id="1-核心原理"><a href="#1-核心原理" class="headerlink" title="1. 核心原理"></a>1. 核心原理</h2><p>SSD 相比内存，I&#x2F;O 速度上差了一到两个数量级。但布隆过滤器写入和查询的 key 都是明确的，不存在前缀后缀读写情况，我们可以将布隆过滤器在存储上设计成多个分片分别存储：</p>
 <ul>
-<li>**写入时：**通过一个 hash 函数将需写入的 key 映射到其中的一个分片上写入，分片在内存中缓冲，定期刷盘写到 SSD 中；</li>
+<li><strong>写入时</strong>：通过一个 hash 函数将需写入的 key 映射到其中的一个分片上写入，分片在内存中缓冲，定期刷盘写到 SSD 中；</li>
 <li><strong>查询时</strong>：通过 hash 计算定位到 key 所在的具体分片，然后从 SSD 读取对应的这个分片即可；</li>
 </ul>
 <p>这种分片机制可以有效减少查询时从 SSD 读取的数据量，同时采取批量写入和读取数据短暂缓存的方法，使用户最终对延时增加无感知。</p>
@@ -340,7 +340,7 @@
 <h1 id="第三阶段：基于-S3-的布隆过滤器索引"><a href="#第三阶段：基于-S3-的布隆过滤器索引" class="headerlink" title="第三阶段：基于 S3 的布隆过滤器索引"></a>第三阶段：基于 S3 的布隆过滤器索引</h1><p>前面设计的 BBF 1.0 虽然支持了更多字段写入，但如果要扩展到全文分词 bloom 索引这种更大规模场景仍然存在问题：</p>
 <ul>
 <li><strong>SSD 带宽限制</strong>：全文分词场景下 bloom 索引大小大约是原始日志的 3%，即 20TB 日志对应 600GB 的布隆过滤器。假设分片数取 3000，一个查询分词后有 10 个 key，那么一次查询需要从 SSD 加载的数据量是 <em>600GB &#x2F; 3000  10 ≈ 18GB，带宽 250MB 的 SSD 读取耗时为 18 * 1024&#x2F;250 &#x3D; 72</em> 秒。</li>
-<li>**Ingster 内存问题：**1.0 版本在日志写入 Loki 时就把抽取出的相关字段暂存在 Ingester 组件内存中，直到日志块刷存储时才写入索引（因为直到刷存储时才能确定日志块的 chunkId），在全文分词场景中，要把所有分词后的 key 在内存中缓存显然太昂贵；</li>
+<li><strong>Ingster 内存问题</strong>：1.0 版本在日志写入 Loki 时就把抽取出的相关字段暂存在 Ingester 组件内存中，直到日志块刷存储时才写入索引（因为直到刷存储时才能确定日志块的 chunkId），在全文分词场景中，要把所有分词后的 key 在内存中缓存显然太昂贵；</li>
 <li><strong>跨可用区流量问题</strong>：因为我们的写入链路是多可用区隔离部署的，如果要将一个日志块中内容的所有分词写入不同 BBF 节点负责的不同 shard 中，势必会有大量的跨区流量，一些云服务厂商会对跨区流量收取高昂的费用；</li>
 </ul>
 <p>另外为了满足集群高性能与可扩展的要求，我们还有两个问题要考虑：</p>
